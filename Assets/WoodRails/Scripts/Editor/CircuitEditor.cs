@@ -3,36 +3,19 @@ using UnityEditor;
 
 namespace WoodRails
 {
-    public class CircuitEditor : EditorWindow
+    [CustomEditor(typeof(Circuit))]
+    public class CircuitEditor : Editor
     {
-        // The window is selected if it already exists, else it's created.
-        [MenuItem("Circuit/Edit Circuit")]
-        private static void ShowWindow()
+        public override void OnInspectorGUI() //2
         {
-            EditorWindow.GetWindow(typeof(CircuitEditor));
-        }
+            base.DrawDefaultInspector();
 
-        // Called to draw the MapEditor windows.
-        private void OnGUI()
-        {
-            
-        }
+            GUILayout.Space(20f);
 
-        // Does the rendering of the map editor in the scene view.
-        private void OnSceneGUI(SceneView sceneView)
-        {
-
-        }
-
-        void OnFocus()
-        {
-            SceneView.onSceneGUIDelegate -= this.OnSceneGUI; // Just in case
-            SceneView.onSceneGUIDelegate += this.OnSceneGUI;
-        }
-
-        void OnDestroy()
-        {
-            SceneView.onSceneGUIDelegate -= this.OnSceneGUI;
+            if (GUILayout.Button("Ouvrir l'éditeur de circuit"))
+            {
+                CircuitWindow.ShowWindow(target as Circuit);
+            }
         }
     }
 }

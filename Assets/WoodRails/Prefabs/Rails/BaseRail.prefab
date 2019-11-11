@@ -45,12 +45,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5b61dcbb3cbe45f7b6886ee337ff743, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  NextRails:
-  - {fileID: 0}
-  PreviousRails:
-  - {fileID: 0}
-  Curve: {fileID: 0}
-  Math: {fileID: 0}
+  NextRails: []
+  PreviousRails: []
+  Curve: {fileID: 1690921017451020598}
+  Math: {fileID: 5197434685870256101}
 --- !u!114 &1690921017451020598
 MonoBehaviour:
   m_ObjectHideFlags: 0

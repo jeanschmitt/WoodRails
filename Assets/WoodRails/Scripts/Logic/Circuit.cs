@@ -9,6 +9,8 @@ namespace WoodRails
         #region Public Fields
 
 
+
+
         #endregion
 
         #region Private Fields
@@ -17,6 +19,12 @@ namespace WoodRails
         /// Rails contenus dans le circuit
         /// </summary>
         private List<Rail> _rails = new List<Rail>();
+
+
+        /// <summary>
+        /// Rail actuel
+        /// </summary>
+        private Rail _currentRail;
 
         #endregion
 
@@ -33,6 +41,30 @@ namespace WoodRails
         {
             
         }
+
+        
+#if UNITY_EDITOR
+        public Rail AddRail(GameObject prefab, Rail afterRail = null)
+        {
+            Rail prevRail = (afterRail) ? afterRail : _currentRail;
+
+            if (prevRail != null)
+            {
+                _currentRail = prevRail.AppendRail(prefab);
+            }
+            else
+            {
+                GameObject newRail = Instantiate(prefab, transform);
+
+                Rail railComponent = newRail.GetComponent<Rail>();
+
+                _rails.Add(railComponent);
+                _currentRail = railComponent;
+            }
+
+            return _currentRail;
+        }
+#endif
 
         #endregion
     }

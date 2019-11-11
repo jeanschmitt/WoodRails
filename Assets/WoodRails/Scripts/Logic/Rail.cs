@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using BansheeGz.BGSpline.Components;
 using BansheeGz.BGSpline.Curve;
@@ -7,6 +8,7 @@ namespace WoodRails
 {
     [RequireComponent(typeof(BGCurve))]
     [RequireComponent(typeof(BGCcMath))]
+    [ExecuteInEditMode]
     public class Rail : MonoBehaviour
     {
         #region Public Fields
@@ -16,13 +18,15 @@ namespace WoodRails
         /// Liste des rails suivant le rail actuel
         /// À part pour des aiguillages et autres, cette liste ne contient qu'un et un seul élément
         /// </summary>
-        public Rail[] NextRails;
+        [SerializeField]
+        public List<Rail> NextRails = new List<Rail>();
 
         /// <summary>
         /// Liste des rails précédant le rail actuel
         /// À part pour des aiguillages et autres, cette liste ne contient qu'un et un seul élément
         /// </summary>
-        public Rail[] PreviousRails;
+        [SerializeField]
+        public List<Rail> PreviousRails = new List<Rail>();
 
         /// <summary>
         /// Composant BGCurve rattaché au rail actuel, définissant la courbe du rail
@@ -58,11 +62,11 @@ namespace WoodRails
         {
             get
             {
-                return NextRails.Length > 0 ? NextRails[_nextRailIndex] : null;
+                return NextRails.Count > 0 ? NextRails[_nextRailIndex] : null;
             }
             set
             {
-                int index = Array.IndexOf(NextRails, value);
+                int index = NextRails.IndexOf(value);
                 if (index < 0) // l'objet j'a pas été trouvé
                 {
                     NextIndex = 0;
@@ -81,11 +85,11 @@ namespace WoodRails
         {
             get
             {
-                return PreviousRails.Length > 0 ? PreviousRails[_previousRailIndex] : null;
+                return PreviousRails.Count > 0 ? PreviousRails[_previousRailIndex] : null;
             }
             set
             {
-                int index = Array.IndexOf(PreviousRails, value);
+                int index = PreviousRails.IndexOf(value);
                 if (index < 0) // l'objet j'a pas été trouvé
                 {
                     PreviousIndex = 0;
@@ -108,7 +112,7 @@ namespace WoodRails
             }
             set
             {
-                if (value < NextRails.Length)
+                if (value < NextRails.Count)
                 {
                     _nextRailIndex = value;
                 }
@@ -130,7 +134,7 @@ namespace WoodRails
             }
             set
             {
-                if (value < PreviousRails.Length)
+                if (value < PreviousRails.Count)
                 {
                     _previousRailIndex = value;
                 }
@@ -163,6 +167,39 @@ namespace WoodRails
             Math = GetComponent<BGCcMath>();
             _pathLength = Math.GetDistance();
         }
+        #endregion
+
+        #region Public Methods
+
+
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Ajoute un rail
+        /// Préciser si c'est au début ou a la fin de celui ci
+        /// </summary>
+        public Rail AppendRail(GameObject prefab)
+        {
+            Vector3 tangentEnd;
+
+            Vector3 positionEnd = Math.CalcPositionAndTangentByDistanceRatio(1.0f, out tangentEnd);
+            
+            GameObject newRail = Instantiate(prefab, positionEnd, Quaternion.LookRotation(tangentEnd), transform.parent);
+
+            Rail railComponent = newRail.GetComponent<Rail>();
+
+            NextRails.Add(railComponent);
+            railComponent.PreviousRails.Add(GetComponent<Rail>());
+
+            return railComponent;
+        }
+
+        public Rail PrependRail()
+        {
+            return null;
+        }
+#endif
+
         #endregion
 
         #region Private Methods
