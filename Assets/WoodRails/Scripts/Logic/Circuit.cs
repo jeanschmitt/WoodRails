@@ -1,6 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace WoodRails
 {
@@ -15,6 +18,8 @@ namespace WoodRails
 
         #region Private Fields
 
+
+#if UNITY_EDITOR
         /// <summary>
         /// Rails contenus dans le circuit
         /// </summary>
@@ -25,6 +30,7 @@ namespace WoodRails
         /// Rail actuel
         /// </summary>
         private Rail _currentRail;
+#endif
 
         #endregion
 
@@ -54,7 +60,11 @@ namespace WoodRails
             }
             else
             {
-                GameObject newRail = Instantiate(prefab, transform);
+                GameObject newRail = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+                //GameObject newRail = Instantiate(prefab);
+
+                newRail.transform.parent = transform;
+                newRail.transform.position = transform.position;
 
                 Rail railComponent = newRail.GetComponent<Rail>();
 

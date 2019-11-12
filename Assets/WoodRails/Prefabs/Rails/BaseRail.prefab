@@ -10,8 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1350090234278567500}
   - component: {fileID: 4808844818843789527}
-  - component: {fileID: 1690921017451020598}
-  - component: {fileID: 5197434685870256101}
   m_Layer: 0
   m_Name: BaseRail
   m_TagString: Untagged
@@ -29,7 +27,8 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
+  m_Children:
+  - {fileID: 6973191048936980208}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -47,15 +46,47 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   NextRails: []
   PreviousRails: []
-  Curve: {fileID: 1690921017451020598}
-  Math: {fileID: 5197434685870256101}
---- !u!114 &1690921017451020598
+  Curve: {fileID: 0}
+  Math: {fileID: 0}
+--- !u!1 &2316904231530337031
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6973191048936980208}
+  - component: {fileID: 1007985137598998753}
+  - component: {fileID: 569415432360146093}
+  m_Layer: 0
+  m_Name: curve
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6973191048936980208
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2316904231530337031}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1350090234278567500}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1007985137598998753
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1350090234278567501}
+  m_GameObject: {fileID: 2316904231530337031}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e70f079e2a6bf364e8185b765fbe61c0, type: 3}
@@ -122,17 +153,17 @@ MonoBehaviour:
   points:
   - controlType: 0
     positionLocal: {x: 0, y: 0, z: 0}
-    controlFirstLocal: {x: -1, y: 0, z: 0}
-    controlSecondLocal: {x: 1, y: 0, z: 0}
+    controlFirstLocal: {x: 1, y: 0, z: 0}
+    controlSecondLocal: {x: -1, y: 0, z: 0}
     pointTransform: {fileID: 0}
-    curve: {fileID: 1690921017451020598}
+    curve: {fileID: 1007985137598998753}
     fieldsValues: []
   - controlType: 0
     positionLocal: {x: 0, y: 0, z: 0.15}
-    controlFirstLocal: {x: -1, y: 0, z: 0}
-    controlSecondLocal: {x: 1, y: 0, z: 0}
+    controlFirstLocal: {x: 1, y: 0, z: 0}
+    controlSecondLocal: {x: -1, y: 0, z: 0}
     pointTransform: {fileID: 0}
-    curve: {fileID: 1690921017451020598}
+    curve: {fileID: 1007985137598998753}
     fieldsValues: []
   pointsComponents: []
   pointsGameObjects: []
@@ -149,13 +180,13 @@ MonoBehaviour:
   eventMode: 0
   pointsMode: 0
   forceChangedEventMode: 0
---- !u!114 &5197434685870256101
+--- !u!114 &569415432360146093
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1350090234278567501}
+  m_GameObject: {fileID: 2316904231530337031}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b6d20671ad38ded4fa2362df353b9a31, type: 3}
@@ -167,7 +198,7 @@ MonoBehaviour:
   ccName: 
   fields: 3
   mathType: 0
-  sectionParts: 30
+  sectionParts: 1
   optimizeStraightLines: 0
   tolerance: 0.2
   usePositionToCalculateTangents: 0

@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 497009636229401072}
   - component: {fileID: 6261607299516399467}
-  - component: {fileID: 2970749643068290508}
   - component: {fileID: 4494378382817003876}
   - component: {fileID: 3077024140326631277}
   m_Layer: 0
@@ -28,9 +27,10 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 497009636229401073}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.221, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
+  m_Children:
+  - {fileID: 3696166113301632395}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -46,19 +46,95 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5b61dcbb3cbe45f7b6886ee337ff743, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  nextRails:
-  - {fileID: 0}
-  previousRails:
-  - {fileID: 0}
+  NextRails: []
+  PreviousRails: []
+  Curve: {fileID: 3357577540647513545}
   Math: {fileID: 0}
-  Curve: {fileID: 0}
---- !u!114 &2970749643068290508
+--- !u!114 &4494378382817003876
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 497009636229401073}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6d20671ad38ded4fa2362df353b9a31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  showHandles: 1
+  hidden: 0
+  parent: {fileID: 0}
+  ccName: 
+  fields: 1
+  mathType: 0
+  sectionParts: 30
+  optimizeStraightLines: 0
+  tolerance: 0.2
+  usePositionToCalculateTangents: 0
+  updateMode: 0
+  rendererForUpdateCheck: {fileID: 0}
+  mathChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  spheresScale: 1
+  spheresColor: {r: 1, g: 1, b: 1, a: 1}
+  spheresCount: 100
+--- !u!114 &3077024140326631277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 497009636229401073}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f01655d595e3e4a56a0fb3e19173d678, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Tile: {fileID: 4580009171622105440, guid: 6941d452ebcfa4ae0b8073690b723960, type: 3}
+  TileSize: 0.002
+  LoopTiles: 0
+  AutoUpdatePositions: 1
+--- !u!1 &5175259608160632025
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3696166113301632395}
+  - component: {fileID: 3357577540647513545}
+  - component: {fileID: 3270022930119806926}
+  m_Layer: 0
+  m_Name: curve
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3696166113301632395
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5175259608160632025}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 497009636229401072}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3357577540647513545
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5175259608160632025}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e70f079e2a6bf364e8185b765fbe61c0, type: 3}
@@ -123,19 +199,19 @@ MonoBehaviour:
   mode2D: 0
   closed: 0
   points:
-  - controlType: 2
-    positionLocal: {x: 0.21936446, y: 0, z: 0.24461573}
-    controlFirstLocal: {x: 0.17030519, y: 0, z: -0.08538769}
-    controlSecondLocal: {x: -0.20043911, y: 0, z: -0.058255777}
-    pointTransform: {fileID: 0}
-    curve: {fileID: 2970749643068290508}
-    fieldsValues: []
-  - controlType: 0
+  - controlType: 1
     positionLocal: {x: 0, y: 0, z: 0}
-    controlFirstLocal: {x: 0.32394016, y: 0, z: 0.12943068}
-    controlSecondLocal: {x: -0.33129245, y: 0, z: 0.11540416}
+    controlFirstLocal: {x: 0, y: 0, z: -0.08}
+    controlSecondLocal: {x: -0, y: -0, z: 0.08}
     pointTransform: {fileID: 0}
-    curve: {fileID: 2970749643068290508}
+    curve: {fileID: 3357577540647513545}
+    fieldsValues: []
+  - controlType: 1
+    positionLocal: {x: 0, y: 0.07468164, z: 0.15}
+    controlFirstLocal: {x: 0, y: -0.04, z: 0}
+    controlSecondLocal: {x: -0, y: 0.04, z: -0}
+    pointTransform: {fileID: 0}
+    curve: {fileID: 3357577540647513545}
     fieldsValues: []
   pointsComponents: []
   pointsGameObjects: []
@@ -152,13 +228,13 @@ MonoBehaviour:
   eventMode: 0
   pointsMode: 0
   forceChangedEventMode: 0
---- !u!114 &4494378382817003876
+--- !u!114 &3270022930119806926
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 497009636229401073}
+  m_GameObject: {fileID: 5175259608160632025}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b6d20671ad38ded4fa2362df353b9a31, type: 3}
@@ -168,9 +244,9 @@ MonoBehaviour:
   hidden: 0
   parent: {fileID: 0}
   ccName: 
-  fields: 1
+  fields: 3
   mathType: 0
-  sectionParts: 30
+  sectionParts: 10
   optimizeStraightLines: 0
   tolerance: 0.2
   usePositionToCalculateTangents: 0
@@ -182,19 +258,3 @@ MonoBehaviour:
   spheresScale: 1
   spheresColor: {r: 1, g: 1, b: 1, a: 1}
   spheresCount: 100
---- !u!114 &3077024140326631277
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 497009636229401073}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f01655d595e3e4a56a0fb3e19173d678, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Tile: {fileID: 4580009171622105440, guid: 6941d452ebcfa4ae0b8073690b723960, type: 3}
-  TileSize: 0.002
-  LoopTiles: 0
-  AutoUpdatePositions: 1

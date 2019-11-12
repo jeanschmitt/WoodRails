@@ -105,7 +105,7 @@ namespace WoodRails
         // Start is called before the first frame update
         void Start()
         {
-            _math = GetComponent<BGCcMath>();
+            _math = GetComponent<Rail>().Math;
 
             Populate();
         }

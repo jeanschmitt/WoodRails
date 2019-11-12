@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using BansheeGz.BGSpline.Components;
 using BansheeGz.BGSpline.Curve;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace WoodRails
 {
@@ -19,19 +22,18 @@ namespace WoodRails
         /// À part pour des aiguillages et autres, cette liste ne contient qu'un et un seul élément
         /// </summary>
         [SerializeField]
-        public List<Rail> NextRails = new List<Rail>();
+        public List<Rail> NextRails;// = new List<Rail>();
 
         /// <summary>
         /// Liste des rails précédant le rail actuel
         /// À part pour des aiguillages et autres, cette liste ne contient qu'un et un seul élément
         /// </summary>
         [SerializeField]
-        public List<Rail> PreviousRails = new List<Rail>();
+        public List<Rail> PreviousRails;// = new List<Rail>();
 
         /// <summary>
         /// Composant BGCurve rattaché au rail actuel, définissant la courbe du rail
         /// </summary>
-        [HideInInspector]
         public BGCurve Curve;
         
         /// <summary>
@@ -175,8 +177,7 @@ namespace WoodRails
         // Start is called before the first frame update
         void Start()
         {
-            Curve = GetComponent<BGCurve>();
-            Math = GetComponent<BGCcMath>();
+            Math = Curve.GetComponent<BGCcMath>();
             _pathLength = Math.GetDistance();
         }
         #endregion
@@ -194,6 +195,8 @@ namespace WoodRails
         /// <returns></returns>
         public Rail AppendRail(GameObject prefab, RAIL_BOUNDARY railBoundary = RAIL_BOUNDARY.RAIL_END)
         {
+            Math = Curve.GetComponent<BGCcMath>();
+
             Vector3 tangentEnd;
             Vector3 positionEnd;
 
@@ -208,13 +211,19 @@ namespace WoodRails
                 positionEnd = Math.CalcPositionAndTangentByDistanceRatio(1.0f, out tangentEnd);
             }
 
-            
-            GameObject newRail = Instantiate(prefab, positionEnd, Quaternion.LookRotation(tangentEnd), transform.parent);
+
+            GameObject newRail = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+            //GameObject newRail = Instantiate(prefab);
+
+            newRail.transform.parent = transform.parent;
+            newRail.transform.position = positionEnd;
+            newRail.transform.rotation = Quaternion.LookRotation(tangentEnd);
 
             Rail railComponent = newRail.GetComponent<Rail>();
-
-            NextRails.Add(railComponent);
+            
+            
             railComponent.PreviousRails.Add(GetComponent<Rail>());
+            NextRails.Add(railComponent);
 
             return railComponent;
         }

@@ -296,6 +296,33 @@ namespace WoodRails
         }
 
 
+
+        /*public Rail AppendRail(GameObject prefab, Rail afterRail = null)
+        {
+            Rail newRail;
+
+            if (afterRail != null)
+            {
+                newRail = afterRail.AppendRail(prefab);
+            }
+            else
+            {
+                newRail = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+                //GameObject newRail = Instantiate(prefab);
+
+                newRail.transform.parent = transform;
+                newRail.transform.position = transform.position;
+
+                Rail railComponent = newRail.GetComponent<Rail>();
+
+                _rails.Add(railComponent);
+                _currentRail = railComponent;
+            }
+
+            return _currentRail;
+        }*/
+
+
         /// <summary>
         /// Met à jour la liste des circuits de la scène
         /// Cette méthode étant lente, il faut l'appeler le moins possible
