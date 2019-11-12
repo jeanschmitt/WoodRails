@@ -41,6 +41,16 @@ namespace WoodRails
         [HideInInspector]
         public BGCcMath Math;
 
+
+        /// <summary>
+        /// Extrémité du rail
+        /// </summary>
+        public enum RAIL_BOUNDARY
+        {
+            RAIL_END,
+            RAIL_BEGIN
+        }
+
         
 
         #endregion
@@ -100,6 +110,8 @@ namespace WoodRails
                 }
             }
         }
+
+        
 
         /// <summary>
         /// Index du rail suivant actuellement sélectionné
@@ -175,14 +187,27 @@ namespace WoodRails
 
 #if UNITY_EDITOR
         /// <summary>
-        /// Ajoute un rail
-        /// Préciser si c'est au début ou a la fin de celui ci
+        /// Ajoute un rail au rail courant
         /// </summary>
-        public Rail AppendRail(GameObject prefab)
+        /// <param name="prefab">Prefab du rail à ajouter</param>
+        /// <param name="railBoundary">Ajouter à la fin ou au début du rail</param>
+        /// <returns></returns>
+        public Rail AppendRail(GameObject prefab, RAIL_BOUNDARY railBoundary = RAIL_BOUNDARY.RAIL_END)
         {
             Vector3 tangentEnd;
+            Vector3 positionEnd;
 
-            Vector3 positionEnd = Math.CalcPositionAndTangentByDistanceRatio(1.0f, out tangentEnd);
+            if (railBoundary == RAIL_BOUNDARY.RAIL_BEGIN)
+            {
+                positionEnd = Math.CalcPositionAndTangentByDistanceRatio(0.0f, out tangentEnd);
+
+                tangentEnd *= -1;
+            }
+            else// if (railBoundary == RAIL_BOUNDARY.RAIL_END)
+            {
+                positionEnd = Math.CalcPositionAndTangentByDistanceRatio(1.0f, out tangentEnd);
+            }
+
             
             GameObject newRail = Instantiate(prefab, positionEnd, Quaternion.LookRotation(tangentEnd), transform.parent);
 
@@ -192,11 +217,6 @@ namespace WoodRails
             railComponent.PreviousRails.Add(GetComponent<Rail>());
 
             return railComponent;
-        }
-
-        public Rail PrependRail()
-        {
-            return null;
         }
 #endif
 
