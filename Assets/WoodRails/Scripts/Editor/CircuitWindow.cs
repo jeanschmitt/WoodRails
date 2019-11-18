@@ -4,6 +4,8 @@ using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using System.Collections;
 using System.Collections.Generic;
+using BansheeGz.BGSpline.Components;
+using BansheeGz.BGSpline.Curve;
 
 
 namespace WoodRails
@@ -43,8 +45,14 @@ namespace WoodRails
 
         /// <summary>
         /// Index du circuit sélectionné
+        /// Si cet attribut est modifié directement, il faut mettre à jour _serializedCircuit
         /// </summary>
         private int _selectedCircuitIndex = 0;
+
+        /// <summary>
+        /// SerializedObject du Circuit actuel, nécessaire pour le modifier dans l'éditeur
+        /// </summary>
+        private SerializedObject _serializedCircuit;
 
         /// <summary>
         /// Circuit en cours d'édition
@@ -68,7 +76,19 @@ namespace WoodRails
                 {
                     _selectedCircuitIndex = index;
                 }
+
+                _serializedCircuit = new SerializedObject(_sceneCircuits[_selectedCircuitIndex]);
             }
+        }
+
+
+        /// <summary>
+        /// Extrémité du rail
+        /// </summary>
+        public enum RAIL_BOUNDARY
+        {
+            RAIL_END,
+            RAIL_BEGIN
         }
         ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -184,6 +204,9 @@ namespace WoodRails
             GUILayout.Label("Circuit à éditer :");
             _selectedCircuitIndex = EditorGUILayout.Popup(_selectedCircuitIndex, _sceneCircuitsNames.ToArray());
 
+            // Mise à jour de l'objet sérialisé
+            _serializedCircuit = new SerializedObject(Circuit);
+
             GUILayout.Space(20f);
             
             // sélectionner dossier de prefabs
@@ -267,6 +290,8 @@ namespace WoodRails
         }
 
 
+
+
         /// <summary>
         /// Ajoute un rail et le définit comme sélection actuelle
         /// </summary>
@@ -283,44 +308,121 @@ namespace WoodRails
                 // null si l'objet sélectionné n'est pas un rail
             }
 
-            Rail newRail = Circuit.AddRail(_railPalette[railIndex], selectedRail);
+            GameObject newRail = AppendRail(_railPalette[railIndex], selectedRail);
+            Rail newRailComp = newRail.GetComponent<Rail>();
 
-            GameObject[] newSelection = {newRail.gameObject};
+            // Met à jour la version sérialisée du circuit
+            _serializedCircuit.Update();
+
+            CheckRailConnections(newRailComp);
+
+            // Ajoute le nouveau rail à la liste des rails du circuit
+
+             // pas besoin !!! chercher parmi les enfants
+            var circuitRails = _serializedCircuit.FindProperty("Rails");
+            int newRailIndex = circuitRails.arraySize++;
+            circuitRails.GetArrayElementAtIndex(newRailIndex).objectReferenceValue = newRailComp;
+            _serializedCircuit.ApplyModifiedProperties();
+
+            // Sélectionne le nouveau rail
+            GameObject[] newSelection = { newRail };
             Selection.objects = newSelection;
 
-            Undo.RegisterCreatedObjectUndo(newRail.gameObject, "Add Rail");
-
-            //////////////////////////
-            // Penser à vérifier la fermeture automatique du circuit
-            //////////////////////////
+            Undo.RegisterCreatedObjectUndo(newRail, "Add Rail");
         }
 
 
-
-        /*public Rail AppendRail(GameObject prefab, Rail afterRail = null)
+        /// <summary>
+        /// Ajoute un rail à la suite d'un autre
+        /// 
+        /// Note : empêcher l'ajout de rail à un rail déjà plein
+        /// </summary>
+        /// <param name="prefab"></param>
+        /// <param name="toRail"></param>
+        /// <param name="railBoundary"></param>
+        /// <returns></returns>
+        private GameObject AppendRail(GameObject prefab, Rail toRail = null, RAIL_BOUNDARY railBoundary = RAIL_BOUNDARY.RAIL_END)
         {
-            Rail newRail;
+            GameObject newRail = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
 
-            if (afterRail != null)
+
+            // Créé après un rail existant
+            if (toRail != null)
             {
-                newRail = afterRail.AppendRail(prefab);
+                BGCcMath math = toRail.Curve.GetComponent<BGCcMath>();
+
+                Vector3 tangentEnd;
+                Vector3 positionEnd;
+
+                // Placement au début ou à la fin du rail
+                if (railBoundary == RAIL_BOUNDARY.RAIL_BEGIN)
+                {
+                    positionEnd = math.CalcPositionAndTangentByDistanceRatio(0.0f, out tangentEnd);
+
+                    tangentEnd *= -1;
+                }
+                else// if (railBoundary == RAIL_BOUNDARY.RAIL_END)
+                {
+                    positionEnd = math.CalcPositionAndTangentByDistanceRatio(1.0f, out tangentEnd);
+                }
+
+                // Affectation du parent, position, et rotation
+                newRail.transform.parent = toRail.transform.parent;
+                newRail.transform.position = positionEnd;
+                newRail.transform.rotation = Quaternion.LookRotation(tangentEnd);
+
+
+                Rail newRailComp = newRail.GetComponent<Rail>();
+                
+
+                // Ajout dans les tableaux de rail suivant et précédent
+                newRailComp.PreviousRails.Add(toRail);
+
+                // https://answers.unity.com/questions/155370/edit-an-object-in-unityeditor-editorwindow.html
+                // Nécessaire d'utiliser SerializedObject pour conserver la valeur après un play
+                // Mais pas dans la ligne précédente apparement
+                var serializedToRail = new SerializedObject(toRail);
+                var nextRailsProp = serializedToRail.FindProperty("NextRails");
+
+                int nextRailsSize = nextRailsProp.arraySize++;
+                nextRailsProp.GetArrayElementAtIndex(nextRailsSize).objectReferenceValue = newRailComp;
+
+                serializedToRail.ApplyModifiedProperties();
+                //
             }
+            // Créé à la racine du circuit édité
             else
             {
-                newRail = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
-                //GameObject newRail = Instantiate(prefab);
-
-                newRail.transform.parent = transform;
-                newRail.transform.position = transform.position;
-
-                Rail railComponent = newRail.GetComponent<Rail>();
-
-                _rails.Add(railComponent);
-                _currentRail = railComponent;
+                newRail.transform.parent = Circuit.transform;
+                newRail.transform.position = Circuit.transform.position;
             }
 
-            return _currentRail;
-        }*/
+            return newRail;
+        }
+
+        /// <summary>
+        /// Vérifie si le rail ajouté peut être connecté à un autre rail déjà posé
+        /// </summary>
+        /// <param name="rail">Rail à vérifier</param>
+        private void CheckRailConnections(Rail rail)
+        {
+            // _serializedCircuit.Update() est déjà appelé plus tôt
+
+            foreach (var curve in rail.Curves)
+            {
+
+            }
+
+            var rails = _serializedCircuit.FindProperty("Rails");
+            // non ! chercher parmi les enfants du circuit
+
+            for (int i = 0; i < rails.arraySize; i++)
+            {
+                Rail r = rails.GetArrayElementAtIndex(i).objectReferenceValue as Rail; // à vérifier
+
+
+            }
+        }
 
 
         /// <summary>

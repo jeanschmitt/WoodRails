@@ -1,18 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace WoodRails
 {
     public class Circuit : MonoBehaviour
     {
         #region Public Fields
-
-
-
 
         #endregion
 
@@ -23,13 +17,7 @@ namespace WoodRails
         /// <summary>
         /// Rails contenus dans le circuit
         /// </summary>
-        private List<Rail> _rails = new List<Rail>();
-
-
-        /// <summary>
-        /// Rail actuel
-        /// </summary>
-        private Rail _currentRail;
+        public List<Rail> Rails = new List<Rail>();
 #endif
 
         #endregion
@@ -48,33 +36,6 @@ namespace WoodRails
             
         }
 
-        
-#if UNITY_EDITOR
-        public Rail AddRail(GameObject prefab, Rail afterRail = null)
-        {
-            Rail prevRail = (afterRail) ? afterRail : _currentRail;
-
-            if (prevRail != null)
-            {
-                _currentRail = prevRail.AppendRail(prefab);
-            }
-            else
-            {
-                GameObject newRail = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
-                //GameObject newRail = Instantiate(prefab);
-
-                newRail.transform.parent = transform;
-                newRail.transform.position = transform.position;
-
-                Rail railComponent = newRail.GetComponent<Rail>();
-
-                _rails.Add(railComponent);
-                _currentRail = railComponent;
-            }
-
-            return _currentRail;
-        }
-#endif
 
         #endregion
     }

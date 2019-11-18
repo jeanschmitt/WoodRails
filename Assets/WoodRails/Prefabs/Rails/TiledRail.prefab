@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 497009636229401072}
   - component: {fileID: 6261607299516399467}
-  - component: {fileID: 4494378382817003876}
   - component: {fileID: 3077024140326631277}
   m_Layer: 0
   m_Name: TiledRail
@@ -48,38 +47,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   NextRails: []
   PreviousRails: []
-  Curve: {fileID: 3357577540647513545}
-  Math: {fileID: 0}
---- !u!114 &4494378382817003876
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 497009636229401073}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b6d20671ad38ded4fa2362df353b9a31, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  showHandles: 1
-  hidden: 0
-  parent: {fileID: 0}
-  ccName: 
-  fields: 1
-  mathType: 0
-  sectionParts: 30
-  optimizeStraightLines: 0
-  tolerance: 0.2
-  usePositionToCalculateTangents: 0
-  updateMode: 0
-  rendererForUpdateCheck: {fileID: 0}
-  mathChangedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  spheresScale: 1
-  spheresColor: {r: 1, g: 1, b: 1, a: 1}
-  spheresCount: 100
+  Curves:
+  - {fileID: 3357577540647513545}
 --- !u!114 &3077024140326631277
 MonoBehaviour:
   m_ObjectHideFlags: 0

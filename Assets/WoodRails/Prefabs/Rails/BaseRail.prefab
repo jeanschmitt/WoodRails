@@ -46,8 +46,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   NextRails: []
   PreviousRails: []
-  Curve: {fileID: 0}
-  Math: {fileID: 0}
+  Curves:
+  - {fileID: 1007985137598998753}
 --- !u!1 &2316904231530337031
 GameObject:
   m_ObjectHideFlags: 0

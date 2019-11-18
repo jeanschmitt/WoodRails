@@ -6,8 +6,6 @@ using BansheeGz.BGSpline.Components;
 
 namespace WoodRails
 {
-    [RequireComponent(typeof(BGCurve))]
-    [RequireComponent(typeof(BGCcMath))]
     [RequireComponent(typeof(Rail))]
     public class TiledRail : MonoBehaviour
     {

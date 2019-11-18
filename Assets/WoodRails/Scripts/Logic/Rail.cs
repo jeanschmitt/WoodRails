@@ -3,14 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using BansheeGz.BGSpline.Components;
 using BansheeGz.BGSpline.Curve;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace WoodRails
 {
-    [RequireComponent(typeof(BGCurve))]
-    [RequireComponent(typeof(BGCcMath))]
     [ExecuteInEditMode]
     public class Rail : MonoBehaviour
     {
@@ -32,28 +27,27 @@ namespace WoodRails
         public List<Rail> PreviousRails;// = new List<Rail>();
 
         /// <summary>
-        /// Composant BGCurve rattaché au rail actuel, définissant la courbe du rail
+        /// Nombre maximum de rails suivants possibles
         /// </summary>
-        public BGCurve Curve;
-        
-        /// <summary>
-        /// Composant BGCcMath rattaché au rail actuel, permettant des opérations mathématiques sur la courbe
-        /// du rail.
-        /// </summary>
-        [HideInInspector]
-        public BGCcMath Math;
-
+        public int MaxNextRails = 1;
 
         /// <summary>
-        /// Extrémité du rail
+        /// Nombre maximum de rails précédents possibles
         /// </summary>
-        public enum RAIL_BOUNDARY
-        {
-            RAIL_END,
-            RAIL_BEGIN
-        }
+        public int MaxPreviousRails = 1;
 
+        /// <summary>
+        /// Courbes de Bézier rattachées au rail
+        /// Ne doit contenir qu'un élément, sauf dans le cas d'aiguillages etc
+        /// </summary>
+        public BGCurve[] Curves = {};
         
+        #endregion
+
+        #region Private Fields
+
+        // Index de la courbe courrante
+        private int _currentCurveIndex = 0;
 
         #endregion
 
@@ -157,9 +151,72 @@ namespace WoodRails
                     Debug.Log("Rails.PreviousIndex.set : new index out of range");
                 }
             }
-        } 
+        }
+
+
+        /// <summary>
+        /// Composant BGCurve rattaché au rail actuel, définissant la courbe du rail
+        /// </summary>
+        public BGCurve Curve
+        {
+            get
+            {
+                return Curves.Length > 0 ? Curves[_currentCurveIndex] : null;
+            }
+            set
+            {
+                int index = System.Array.IndexOf(Curves, value);;
+                if (index < 0) // l'objet j'a pas été trouvé
+                {
+                    CurveIndex = 0;
+                }
+                else
+                {
+                    CurveIndex = index;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Index de la curve actuellement sélectionnée
+        /// </summary>
+        public int CurveIndex
+        {
+            get
+            {
+                return _currentCurveIndex;
+            }
+            set
+            {
+                if (value < Curves.Length)
+                {
+                    _currentCurveIndex = value;
+                    _pathLength = Math.GetDistance();
+                }
+                else
+                {
+                    Debug.Log("Rails.CurveIndex.set : new index out of range");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Composant BGCcMath rattaché au rail actuel, permettant des opérations mathématiques sur la courbe
+        /// du rail.
+        /// </summary>
+        [HideInInspector]
+        public BGCcMath Math
+        {
+            get
+            {
+                // Optimisable
+                return Curve.GetComponent<BGCcMath>();
+            }
+        }
 
         #endregion
+
+
 
         #region Private Fields
 
@@ -177,61 +234,50 @@ namespace WoodRails
         // Start is called before the first frame update
         void Start()
         {
-            Math = Curve.GetComponent<BGCcMath>();
             _pathLength = Math.GetDistance();
         }
         #endregion
 
+
         #region Public Methods
 
-
-
-#if UNITY_EDITOR
         /// <summary>
-        /// Ajoute un rail au rail courant
+        /// Ajoute un rail suivant, si possible
         /// </summary>
-        /// <param name="prefab">Prefab du rail à ajouter</param>
-        /// <param name="railBoundary">Ajouter à la fin ou au début du rail</param>
+        /// <param name="newRail">Rail à ajouter</param>
         /// <returns></returns>
-        public Rail AppendRail(GameObject prefab, RAIL_BOUNDARY railBoundary = RAIL_BOUNDARY.RAIL_END)
+        public bool AddNextRail(Rail newRail)
         {
-            Math = Curve.GetComponent<BGCcMath>();
-
-            Vector3 tangentEnd;
-            Vector3 positionEnd;
-
-            if (railBoundary == RAIL_BOUNDARY.RAIL_BEGIN)
+            if (NextRails.Count < MaxNextRails)
             {
-                positionEnd = Math.CalcPositionAndTangentByDistanceRatio(0.0f, out tangentEnd);
+                NextRails.Add(newRail);
 
-                tangentEnd *= -1;
+                return true;
             }
-            else// if (railBoundary == RAIL_BOUNDARY.RAIL_END)
+            else
             {
-                positionEnd = Math.CalcPositionAndTangentByDistanceRatio(1.0f, out tangentEnd);
+                return false;
             }
-
-
-            GameObject newRail = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
-            //GameObject newRail = Instantiate(prefab);
-
-            newRail.transform.parent = transform.parent;
-            newRail.transform.position = positionEnd;
-            newRail.transform.rotation = Quaternion.LookRotation(tangentEnd);
-
-            Rail railComponent = newRail.GetComponent<Rail>();
-            
-            
-            railComponent.PreviousRails.Add(GetComponent<Rail>());
-            NextRails.Add(railComponent);
-
-            return railComponent;
         }
-#endif
 
-        #endregion
+        /// <summary>
+        /// Ajoute un rail précédent, si possible
+        /// </summary>
+        /// <param name="newRail">Rail à ajouter</param>
+        /// <returns></returns>
+        public bool AddPreviousRail(Rail newRail)
+        {
+            if (PreviousRails.Count < MaxPreviousRails)
+            {
+                PreviousRails.Add(newRail);
 
-        #region Private Methods
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
 
         #endregion
     }
