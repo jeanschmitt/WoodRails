@@ -1,7 +1,4 @@
 ﻿using UnityEngine;
-using BansheeGz.BGSpline.Components;
-using BansheeGz.BGSpline.Curve;
-
 
 
 namespace WoodRails
@@ -45,17 +42,18 @@ namespace WoodRails
         private Rail _attachedRail;
 
         // Distance est la position de l'élément par rapport au rail attaché
-        private float _distance = 0.0f;
+        private float _distance;
 
         // Taille du rail actuellement rattaché
         private float _currentRailLength;
 
         #endregion
-        
 
-        
+
+
         #region Unity Lifecycle Events
 
+        // Start is called before the first frame update
         void Start()
         {
             if (_attachedRail)
@@ -77,7 +75,7 @@ namespace WoodRails
                 Vector3 tangent;
 
                 transform.position = _attachedRail.Math.CalcPositionAndTangentByDistance(_distance, out tangent);
-                //this is a version for 3D. For 2D, comment this line and uncomment the next one
+
                 transform.rotation = Quaternion.LookRotation(tangent);
             }
         }
@@ -91,10 +89,10 @@ namespace WoodRails
         {
             if (_distance >= _currentRailLength && Speed > 0)
             {
-                if (_attachedRail.Next) // Changement de rail
+                if (_attachedRail.NextRail) // Changement de rail
                 {
                     _distance -= _currentRailLength;
-                    ChangeRail(_attachedRail.Next);
+                    ChangeRail(_attachedRail.NextRail);
                 }
                 else if (_attachedRail.Curve.Closed) // Bouclage du rail
                 {
@@ -102,9 +100,9 @@ namespace WoodRails
                 }
             }
             else if (_distance <= 0f && Speed < 0) {
-                if (_attachedRail.Previous) // Changement de rail
+                if (_attachedRail.PreviousRail) // Changement de rail
                 {
-                    ChangeRail(_attachedRail.Previous);
+                    ChangeRail(_attachedRail.PreviousRail);
                     _distance += _currentRailLength;
                 }
                 else if (_attachedRail.Curve.Closed) // Bouclage du rail

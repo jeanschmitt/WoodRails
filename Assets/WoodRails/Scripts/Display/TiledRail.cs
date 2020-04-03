@@ -1,7 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using BansheeGz.BGSpline.Curve;
 using BansheeGz.BGSpline.Components;
 
 namespace WoodRails
@@ -9,18 +7,6 @@ namespace WoodRails
     [RequireComponent(typeof(Rail))]
     public class TiledRail : MonoBehaviour
     {
-        ///
-        /// Note sur le composant
-        /// Lors du Conextdays, un composant similaire (RealisticRail) a été utilisé pour générer un rail
-        /// fait de tiles suivant une BGCurve
-        /// Après quelques tours de translation (chemin : deux lignes droites et deux angles à 180°),
-        /// on observait des trous se former, certainement dus à la compensation de taille de la tile
-        /// à l'aide du scale.
-        ///
-        /// TODO : Vérifier que ce problème n'apparaît pas sur cette classe, ou le corriger.
-        ///
-
-
         #region Public Fields
 
         /// <summary>
@@ -168,7 +154,7 @@ namespace WoodRails
         {
             _pathLength = _math.GetDistance();
 
-            if (TileSize == 0.0f)
+            if (System.Math.Abs(TileSize) < 0.00001f)
             {
                 Debug.LogError("TileSize must be != 0.0f");
             }

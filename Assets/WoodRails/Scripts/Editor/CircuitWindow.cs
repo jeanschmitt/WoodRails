@@ -1,11 +1,6 @@
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
-using UnityEditor.UIElements;
-using System.Collections;
 using System.Collections.Generic;
-using BansheeGz.BGSpline.Components;
-using BansheeGz.BGSpline.Curve;
 
 
 namespace WoodRails
@@ -19,8 +14,8 @@ namespace WoodRails
     /// - Modes d'édition (au clic, (glisser-déposer) ou sélection puis ajout) √
     /// 
     /// Modes d'ajout :
-    /// - Au clic
-    /// - Par sélection puis ajout sur la scène bout à bout avec un autre rail
+    /// - Au clic √
+    /// - Par sélection puis ajout sur la scène bout à bout avec un autre rail √
     /// 
     /// Notes
     /// - Prévoir d'ajouter un rail pas directement à la suite d'un autre rail du circuit ?
@@ -30,7 +25,12 @@ namespace WoodRails
     /// </summary>
     public class CircuitWindow : EditorWindow
     {
-        #region Private Fields
+        #region Attributes & Properties
+
+        /// <summary>
+        /// GameObject parent des futurs GameObjects créés uniquement pour l'éditeur
+        /// </summary>
+        private GameObject _editorGameObject;
 
         //////////////////////////////////// Sélection du circuit //////////////////////////////////
         /// <summary>
@@ -48,11 +48,6 @@ namespace WoodRails
         /// Si cet attribut est modifié directement, il faut mettre à jour _serializedCircuit
         /// </summary>
         private int _selectedCircuitIndex = 0;
-
-        /// <summary>
-        /// SerializedObject du Circuit actuel, nécessaire pour le modifier dans l'éditeur
-        /// </summary>
-        private SerializedObject _serializedCircuit;
 
         /// <summary>
         /// Circuit en cours d'édition
@@ -76,19 +71,7 @@ namespace WoodRails
                 {
                     _selectedCircuitIndex = index;
                 }
-
-                _serializedCircuit = new SerializedObject(_sceneCircuits[_selectedCircuitIndex]);
             }
-        }
-
-
-        /// <summary>
-        /// Extrémité du rail
-        /// </summary>
-        public enum RAIL_BOUNDARY
-        {
-            RAIL_END,
-            RAIL_BEGIN
         }
         ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -117,6 +100,39 @@ namespace WoodRails
         /// Mode d'ajout de rail sélectionné
         /// </summary>
         private int _addModeIndex = 0;
+
+        /// <summary>
+        /// Mémorise le dernier tool utilisé (transform, rotate, scale, ...)
+        /// Lors de l'entrée en mode In Scene
+        /// </summary>
+        private Tool _lastTool;
+
+
+
+        //                          \\
+        // Mode d'ajout "In Scene"  \\
+        //                          \\
+
+        /// <summary>
+        /// Distance de snap des rails, en unité de l'écran GUI (et non de la scène 3D)
+        /// </summary>
+        private const float _maxDistanceSnap = 30.0f;
+
+        /// <summary>
+        /// RailAnchor actuellement sélectionné (souris au dessus)
+        /// </summary>
+        private RailAnchor _focusedAnchor;
+
+        /// <summary>
+        /// Handle de l'indicateur de rail à créer
+        /// </summary>
+        private GameObject _railHandle;
+
+        /// <summary>
+        /// Consomme le prochain MouseUp
+        /// Utilisé après un MouseDown réussi
+        /// </summary>
+        private bool _consumeNextMouseUp = false;
         ////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -151,7 +167,7 @@ namespace WoodRails
         /// <summary>
         /// Affiche la fenêtre
         /// </summary>
-        [MenuItem("Circuit/Open Editor")]
+        [MenuItem("Circuit/Ouvrir l'éditeur")]
         public static CircuitWindow ShowWindow()
         {
             CircuitWindow window = ScriptableObject.CreateInstance(typeof(CircuitWindow)) as CircuitWindow;
@@ -170,7 +186,7 @@ namespace WoodRails
         /// Affiche la fenêtre avec un circuit préselectionné
         /// </summary>
         /// <param name="circuit">Circuit à éditer</param>
-        public static void ShowWindow(Circuit circuit = null)
+        public static void ShowWindow(Circuit circuit)
         {
             CircuitWindow window = CircuitWindow.ShowWindow();
 
@@ -180,17 +196,32 @@ namespace WoodRails
             }
         }
 
+        /*
+        /// <summary>
+        /// Affiche la fenêtre depuis le menu contextuel d'un circuit
+        /// </summary>
+        /// <param name="command">Commande de menu</param>
+        [MenuItem("CONTEXT/Circuit/Ouvrir l'éditeur")]
+        public static void ShowWindow(MenuCommand command)
+        {
+            Circuit circuit = (Circuit)command.context;
+
+            ShowWindow(circuit);
+        }*/
+
         /// <summary>
         /// Exécuté lors de lu focus de la fenêtre
         /// </summary>
         public void OnEnable()
         {
-            // Each editor window contains a root VisualElement object
-            /*VisualElement root = rootVisualElement;
-
-            // VisualElements objects can contain other VisualElement following a tree hierarchy.
-            VisualElement label = new Label("Hello World! From C#");
-            root.Add(label);*/
+            if (!_editorGameObject)
+            {
+                // Pas de Instantiate() pour un GameObject Empty
+                _editorGameObject = new GameObject
+                {
+                    name = "_circuitEditor"
+                };
+            }
 
             RefreshPalette();
         }
@@ -204,9 +235,6 @@ namespace WoodRails
             GUILayout.Label("Circuit à éditer :");
             _selectedCircuitIndex = EditorGUILayout.Popup(_selectedCircuitIndex, _sceneCircuitsNames.ToArray());
 
-            // Mise à jour de l'objet sérialisé
-            _serializedCircuit = new SerializedObject(Circuit);
-
             GUILayout.Space(20f);
             
             // sélectionner dossier de prefabs
@@ -217,7 +245,7 @@ namespace WoodRails
             {
                 string path = EditorUtility.OpenFolderPanel("Prefabs Directory", _prefabsPath, "");
 
-                int assetsStringIndex = path.IndexOf("Assets/");
+                int assetsStringIndex = path.IndexOf("Assets/", System.StringComparison.Ordinal);
 
                 if (assetsStringIndex != -1)
                 {
@@ -236,7 +264,23 @@ namespace WoodRails
 
             // Mode d'ajout de prefabs
 
+            int previousAddModeIndex = _addModeIndex;
             _addModeIndex = GUILayout.SelectionGrid(_addModeIndex, _addModes, 2);
+
+            // Gestion des évènements dans la SceneView
+            if (_addModeIndex != previousAddModeIndex)
+            {
+                if (_addModeIndex == 1)
+                {
+                    EnterSceneEditing();
+                }
+                else
+                {
+                    ExitSceneEditing();
+                }
+            }
+            
+
 
 
 
@@ -249,15 +293,180 @@ namespace WoodRails
 
                 if (selection != -1)
                 {
+                    // Ajout d'un rail via la palette de sélection
                     AddRail(selection);
                 }
             }
             else if(_addModeIndex == 1) // in scene
             {
+                int previousSelectedRail = _selectedRailIndex;
                 _selectedRailIndex = GUILayout.SelectionGrid(_selectedRailIndex, _railIcons.ToArray(), _railsPerRow);
+
+                // Changement dans la sélection
+                if (previousSelectedRail != _selectedRailIndex)
+                {
+                    DestroyRailHandle();
+                    SceneView.lastActiveSceneView.Focus();
+                }
+            }
+
+            if (GUILayout.Button("Check connections"))
+            {
+                Circuit.CheckConnections();
             }
         }
 
+        /// <summary>
+        /// Entre dans le mode édition depuis la SceneView
+        /// Désactive l'outil actuellement sélectionné et focus la SceneView
+        /// </summary>
+        private void EnterSceneEditing()
+        {
+            SceneView.duringSceneGui += OnSceneGUI;
+            SceneView.lastActiveSceneView.Focus();
+
+            _lastTool = Tools.current;
+            Tools.current = Tool.None;
+        }
+
+        /// <summary>
+        /// Quitte le mode édition depuis la SceneView
+        /// Rétablit l'outil précédement sélectionné et détruit l'éventuel Gismo de rail
+        /// </summary>
+        private void ExitSceneEditing()
+        {
+            SceneView.duringSceneGui -= OnSceneGUI;
+
+            DestroyRailHandle();
+
+            _focusedAnchor = null;
+
+            Tools.current = _lastTool;
+        }
+
+
+        /// <summary>
+        /// Gestion des évènements dans la SceneView
+        /// </summary>
+        /// <param name="sceneView">SceneView courante</param>
+        private void OnSceneGUI(SceneView sceneView)
+        {
+            if (_addModeIndex == 1)
+            {
+                if (Event.current.type == EventType.MouseMove)
+                {
+                    // -----------------------------------------------------------------------------------
+                    // Détection de la proximité du curseur avec une extrémité de rail libre
+                    float lowestDistance = _maxDistanceSnap;
+
+                    RailAnchor previouslySelectedAnchor = _focusedAnchor;
+
+                    _focusedAnchor = null;
+
+                    
+                    foreach (Rail rail in Circuit.GetRails())
+                    {
+                        foreach (RailAnchor anchor in rail.GetFreeConnections())
+                        {
+                            Vector2 guiPosition = HandleUtility.WorldToGUIPoint(anchor.Position);
+
+                            float distance = Vector2.Distance(Event.current.mousePosition, guiPosition);
+
+                            if (distance < lowestDistance)
+                            {
+                                _focusedAnchor = anchor;
+                                lowestDistance = distance;
+                            }
+                        }
+                    }
+                    // -----------------------------------------------------------------------------------
+
+
+
+                    // La sélection a changé
+                    if (previouslySelectedAnchor != _focusedAnchor)
+                    {
+                        // Changement de la sélection d'anchor
+                        if (_focusedAnchor != null)
+                        {
+                            if (_railHandle == null)
+                            {
+                                _railHandle = Instantiate(_railPalette[_selectedRailIndex]);
+                            }
+
+                            // Placement de ce rail selon l'anchor
+                            _railHandle.transform.parent = _editorGameObject.transform;
+
+                            _railHandle.GetComponent<Rail>().SetTransformFromAnchor(_focusedAnchor);
+                        }
+                        // On est sorti de la zone de sqélection, suppression du handle
+                        else
+                        {
+                            DestroyRailHandle();
+                        }
+                    }
+
+                    
+
+                    // Consomme l'Event
+                    Event.current.Use();
+                }
+                else if (Event.current.type == EventType.MouseDown)
+                {
+                    // Un rail est prêt à être placé
+                    if (_railHandle && _focusedAnchor)
+                    {
+                        // à bouger -------
+                        GameObject newRail = AddRail(_selectedRailIndex, _focusedAnchor.Parent, _focusedAnchor);
+
+                        if (newRail)
+                        {
+                            // Consomme l'Event
+                            Event.current.Use();
+                            _consumeNextMouseUp = true;
+
+                            DestroyRailHandle();
+                        }
+                    }
+                }
+                else if (Event.current.type == EventType.MouseUp)
+                {
+                    if (_consumeNextMouseUp)
+                    {
+                        // Consomme l'Event
+                        Event.current.Use();
+                        
+                        _consumeNextMouseUp = false;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Détruit le gizmo de prévisualisation d'ajout de rail
+        /// </summary>
+        private void DestroyRailHandle()
+        {
+            if (_railHandle != null)
+            {
+                DestroyImmediate(_railHandle);
+                _railHandle = null;
+            }
+        }
+
+        /// <summary>
+        /// Exécuté lorsque la fenêtre est détruite
+        /// </summary>
+        private void OnDestroy()
+        {
+            ExitSceneEditing();
+
+            if (_editorGameObject)
+            {
+                DestroyImmediate(_editorGameObject);
+                _editorGameObject = null;
+            }
+        }
 
         /// <summary>
         /// Définit la circuit en train d'être édité en fonction de la sélection.
@@ -296,7 +505,7 @@ namespace WoodRails
         /// Ajoute un rail et le définit comme sélection actuelle
         /// </summary>
         /// <param name="railIndex">Index du prefab à ajouter, depuis la palette de rails</param>
-        private void AddRail(int railIndex)
+        private GameObject AddRail(int railIndex)
         {
             // Récupération de la sélection actuelle
             GameObject selected = Selection.activeGameObject;
@@ -306,123 +515,56 @@ namespace WoodRails
             {
                 selectedRail = selected.GetComponent<Rail>();
                 // null si l'objet sélectionné n'est pas un rail
+
+                if (!selectedRail)
+                {
+                    // Recherche parmi les parents
+                    selectedRail = selected.GetComponentInParent<Rail>();
+                }
+
+                if (selectedRail != null)
+                {
+                    // Can be null
+                    RailAnchor anchor = selectedRail.GetAnchorForEndpoint(Rail.Endpoint.Default);
+
+                    return AddRail(railIndex, selectedRail, anchor);
+                }
             }
 
-            GameObject newRail = AppendRail(_railPalette[railIndex], selectedRail);
-            Rail newRailComp = newRail.GetComponent<Rail>();
-
-            // Met à jour la version sérialisée du circuit
-            _serializedCircuit.Update();
-
-            CheckRailConnections(newRailComp);
-
-            // Ajoute le nouveau rail à la liste des rails du circuit
-
-             // pas besoin !!! chercher parmi les enfants
-            var circuitRails = _serializedCircuit.FindProperty("Rails");
-            int newRailIndex = circuitRails.arraySize++;
-            circuitRails.GetArrayElementAtIndex(newRailIndex).objectReferenceValue = newRailComp;
-            _serializedCircuit.ApplyModifiedProperties();
-
-            // Sélectionne le nouveau rail
-            GameObject[] newSelection = { newRail };
-            Selection.objects = newSelection;
-
-            Undo.RegisterCreatedObjectUndo(newRail, "Add Rail");
+            return AddRail(railIndex, null, null);
         }
 
 
         /// <summary>
-        /// Ajoute un rail à la suite d'un autre
-        /// 
-        /// Note : empêcher l'ajout de rail à un rail déjà plein
+        /// Ajoute un rail et le définit comme sélection actuelle
         /// </summary>
-        /// <param name="prefab"></param>
+        /// <param name="railIndex"></param>
         /// <param name="toRail"></param>
-        /// <param name="railBoundary"></param>
+        /// <param name="anchor"></param>
         /// <returns></returns>
-        private GameObject AppendRail(GameObject prefab, Rail toRail = null, RAIL_BOUNDARY railBoundary = RAIL_BOUNDARY.RAIL_END)
+        public GameObject AddRail(int railIndex, Rail toRail, RailAnchor anchor)
         {
-            GameObject newRail = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+            // TODO : changer le type
+            GameObject newRail = Circuit.AddRail(_railPalette[railIndex].GetComponent<Rail>(), toRail, anchor).gameObject;
 
-
-            // Créé après un rail existant
-            if (toRail != null)
+            if (newRail)
             {
-                BGCcMath math = toRail.Curve.GetComponent<BGCcMath>();
+                // Sélectionne le nouveau rail
+                GameObject[] newSelection = { newRail };
+                Selection.objects = newSelection;
 
-                Vector3 tangentEnd;
-                Vector3 positionEnd;
+                Undo.RegisterCreatedObjectUndo(newRail, "Add Rail");
 
-                // Placement au début ou à la fin du rail
-                if (railBoundary == RAIL_BOUNDARY.RAIL_BEGIN)
-                {
-                    positionEnd = math.CalcPositionAndTangentByDistanceRatio(0.0f, out tangentEnd);
-
-                    tangentEnd *= -1;
-                }
-                else// if (railBoundary == RAIL_BOUNDARY.RAIL_END)
-                {
-                    positionEnd = math.CalcPositionAndTangentByDistanceRatio(1.0f, out tangentEnd);
-                }
-
-                // Affectation du parent, position, et rotation
-                newRail.transform.parent = toRail.transform.parent;
-                newRail.transform.position = positionEnd;
-                newRail.transform.rotation = Quaternion.LookRotation(tangentEnd);
-
-
-                Rail newRailComp = newRail.GetComponent<Rail>();
-                
-
-                // Ajout dans les tableaux de rail suivant et précédent
-                newRailComp.PreviousRails.Add(toRail);
-
-                // https://answers.unity.com/questions/155370/edit-an-object-in-unityeditor-editorwindow.html
-                // Nécessaire d'utiliser SerializedObject pour conserver la valeur après un play
-                // Mais pas dans la ligne précédente apparement
-                var serializedToRail = new SerializedObject(toRail);
-                var nextRailsProp = serializedToRail.FindProperty("NextRails");
-
-                int nextRailsSize = nextRailsProp.arraySize++;
-                nextRailsProp.GetArrayElementAtIndex(nextRailsSize).objectReferenceValue = newRailComp;
-
-                serializedToRail.ApplyModifiedProperties();
-                //
+                return newRail;
             }
-            // Créé à la racine du circuit édité
             else
             {
-                newRail.transform.parent = Circuit.transform;
-                newRail.transform.position = Circuit.transform.position;
-            }
+                Debug.LogError("Impossible d'ajouter un rail à cet endroit");
 
-            return newRail;
-        }
-
-        /// <summary>
-        /// Vérifie si le rail ajouté peut être connecté à un autre rail déjà posé
-        /// </summary>
-        /// <param name="rail">Rail à vérifier</param>
-        private void CheckRailConnections(Rail rail)
-        {
-            // _serializedCircuit.Update() est déjà appelé plus tôt
-
-            foreach (var curve in rail.Curves)
-            {
-
-            }
-
-            var rails = _serializedCircuit.FindProperty("Rails");
-            // non ! chercher parmi les enfants du circuit
-
-            for (int i = 0; i < rails.arraySize; i++)
-            {
-                Rail r = rails.GetArrayElementAtIndex(i).objectReferenceValue as Rail; // à vérifier
-
-
+                return null;
             }
         }
+
 
 
         /// <summary>

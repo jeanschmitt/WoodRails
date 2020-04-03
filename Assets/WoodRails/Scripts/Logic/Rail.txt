@@ -1,0 +1,507 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using BansheeGz.BGSpline.Components;
+using BansheeGz.BGSpline.Curve;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+namespace WoodRails
+{
+    [ExecuteInEditMode]
+    public class Rail : MonoBehaviour
+    {
+        #region Public Fields
+        
+
+        /// <summary>
+        /// Liste des rails suivant le rail actuel
+        /// À part pour des aiguillages et autres, cette liste ne contient qu'un et un seul élément
+        /// </summary>
+        [SerializeField]
+        public List<Rail> NextRails;// = new List<Rail>();
+
+        /// <summary>
+        /// Liste des rails précédant le rail actuel
+        /// À part pour des aiguillages et autres, cette liste ne contient qu'un et un seul élément
+        /// </summary>
+        [SerializeField]
+        public List<Rail> PreviousRails;// = new List<Rail>();
+
+        /// <summary>
+        /// Courbes de Bézier rattachées au rail
+        /// Ne doit contenir qu'un élément, sauf dans le cas d'aiguillages etc
+        /// </summary>
+        public BGCurve[] Curves = {};
+        
+        #endregion
+
+
+        #region Properties
+
+        /// <summary>
+        /// Taille en mètres du rail
+        /// </summary>
+        public float PathLength { get { return _pathLength; } }
+
+        /// <summary>
+        /// Renvoie le rail suivant actuellement sélectionné
+        /// Aucune complexité dans le cas général, mais dans le cas d'un aiguillage il y a une certaine logique
+        /// IDEA : dans le cas d'un aiguillage par exemple, la modification de comportement doit se faire via un autre composant
+        /// NOTE : ce cas montre l'intérêt des composants enfants comme dans Unreal Engine
+        /// </summary>
+        
+        public Rail Next
+        {
+            get
+            {
+                return NextRails.Count > 0 ? NextRails[_nextRailIndex] : null;
+            }
+            set
+            {
+                int index = NextRails.IndexOf(value);
+                if (index < 0) // l'objet j'a pas été trouvé
+                {
+                    NextIndex = 0;
+                }
+                else
+                {
+                    NextIndex = index;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Renvoie le rail précédent actuellement sélectionné
+        /// </summary>
+        public Rail Previous
+        {
+            get
+            {
+                return PreviousRails.Count > 0 ? PreviousRails[_previousRailIndex] : null;
+            }
+            set
+            {
+                int index = PreviousRails.IndexOf(value);
+                if (index < 0) // l'objet j'a pas été trouvé
+                {
+                    PreviousIndex = 0;
+                }
+                else
+                {
+                    PreviousIndex = index;
+                }
+            }
+        }
+
+        
+
+        /// <summary>
+        /// Index du rail suivant actuellement sélectionné
+        /// </summary>
+        public int NextIndex
+        {
+            get
+            {
+                return _nextRailIndex;
+            }
+            set
+            {
+                if (value < NextRails.Count)
+                {
+                    _nextRailIndex = value;
+                }
+                else
+                {
+                    Debug.Log("Rails.NextIndex.set : new index out of range");
+                }
+            }
+        } 
+
+        /// <summary>
+        /// Index du rail précédent actuellement sélectionné
+        /// </summary>
+        public int PreviousIndex
+        {
+            get
+            {
+                return _previousRailIndex;
+            }
+            set
+            {
+                if (value < PreviousRails.Count)
+                {
+                    _previousRailIndex = value;
+                }
+                else
+                {
+                    Debug.Log("Rails.PreviousIndex.set : new index out of range");
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Composant BGCurve rattaché au rail actuel, définissant la courbe du rail
+        /// </summary>
+        public BGCurve Curve
+        {
+            get
+            {
+                return Curves.Length > 0 ? Curves[_currentCurveIndex] : null;
+            }
+            set
+            {
+                int index = System.Array.IndexOf(Curves, value);;
+                if (index < 0) // l'objet j'a pas été trouvé
+                {
+                    CurveIndex = 0;
+                }
+                else
+                {
+                    CurveIndex = index;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Index de la curve actuellement sélectionnée
+        /// </summary>
+        public int CurveIndex
+        {
+            get
+            {
+                return _currentCurveIndex;
+            }
+            set
+            {
+                if (value < Curves.Length)
+                {
+                    _currentCurveIndex = value;
+                    _pathLength = Math.GetDistance();
+                }
+                else
+                {
+                    Debug.Log("Rails.CurveIndex.set : new index out of range");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Composant BGCcMath rattaché au rail actuel, permettant des opérations mathématiques sur la courbe
+        /// du rail.
+        /// </summary>
+        public BGCcMath Math
+        {
+            get
+            {
+                // Optimisable
+                return Curve.GetComponent<BGCcMath>();
+            }
+        }
+
+        #endregion
+
+
+
+        #region Private Fields
+
+        // Longueur du rail
+        private float _pathLength;
+
+        // Index des rails suivants et précédents actuellement sélectionnés
+        private int _nextRailIndex = 0;
+        private int _previousRailIndex = 0;
+
+
+        // Index de la courbe courrante
+        private int _currentCurveIndex = 0;
+        
+        public struct RailConnection
+        {
+            public int CurveIndex;
+            public RAIL_BOUNDARY CurveBoundary;
+
+            public RailConnection(int curve, RAIL_BOUNDARY boundary)
+            {
+                CurveIndex = curve;
+                CurveBoundary = boundary;
+            }
+        }
+
+        public struct RailPoint
+        {
+            public Vector3 Position;
+            public RailConnection Connection;
+
+            public RailPoint(Vector3 pos, RailConnection connection)
+            {
+                Position = pos;
+                Connection = connection;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="RailConnection"></typeparam>
+        /// <typeparam name="Rail"></typeparam>
+        /// <returns></returns>
+        private Dictionary<RailConnection, Rail> _connections = new Dictionary<RailConnection, Rail>();
+
+        #endregion
+
+        
+        #region Unity Lifecycle Events
+        // Start is called before the first frame update
+        void Start()
+        {
+            _pathLength = Math.GetDistance();
+        }
+        #endregion
+
+
+        #region Public Methods
+
+        public bool CanAppendRail(RAIL_BOUNDARY railBoundary = RAIL_BOUNDARY.RAIL_END, int curveIndex = -1)
+        {
+            curveIndex = (curveIndex == -1) ? CurveIndex : curveIndex;
+
+            Rail connectedRail;
+            RailConnection connection = new RailConnection(curveIndex, railBoundary);
+
+            if (_connections.TryGetValue(connection, out connectedRail))
+            {
+                if (connectedRail)
+                {
+                    // le rail existe toujours
+                    return false;
+                }
+
+                // il a été supprimé, on le supprime de la liste
+                _connections.Remove(new RailConnection(curveIndex, railBoundary));
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Ajoute un rail
+        ///
+        /// Ne vérifie pas s'il est autorisé d'ajouter un rail ; appeler CanAppendRail avant
+        /// </summary>
+        /// <param name="rail"></param>
+        /// <param name="railBoundary"></param>
+        /// <param name="curveIndex"></param>
+        /// <returns></returns>
+        public bool AppendRail(GameObject rail, RAIL_BOUNDARY railBoundary = RAIL_BOUNDARY.RAIL_END, int curveIndex = -1)
+        {
+            curveIndex = (curveIndex == -1) ? CurveIndex : curveIndex;
+
+            if (curveIndex >= Curves.Length || curveIndex < 0)
+            {
+                // curveIndex est faux
+                return false;
+            }
+
+            BGCcMath math = Curves[curveIndex].GetComponent<BGCcMath>();
+
+            Vector3 tangentEnd;
+            Vector3 positionEnd;
+
+            // Placement au début ou à la fin du rail
+            if (railBoundary == RAIL_BOUNDARY.RAIL_BEGIN)
+            {
+                positionEnd = math.CalcPositionAndTangentByDistanceRatio(0.0f, out tangentEnd);
+
+                tangentEnd *= -1;
+            }
+            else// if (railBoundary == RAIL_BOUNDARY.RAIL_END)
+            {
+                positionEnd = math.CalcPositionAndTangentByDistanceRatio(1.0f, out tangentEnd);
+            }
+
+            // Affectation du parent, position, et rotation
+            rail.transform.parent = transform.parent;
+            rail.transform.position = positionEnd;
+            rail.transform.rotation = Quaternion.LookRotation(tangentEnd);
+
+            Rail railComp = rail.GetComponent<Rail>();
+
+            // Ajout dans les tableaux de rail suivant et précédent
+            railComp.PreviousRails.Add(this); // "this" à tester
+ 
+#if UNITY_EDITOR
+            // https://answers.unity.com/questions/155370/edit-an-object-in-unityeditor-editorwindow.html
+            // Nécessaire d'utiliser SerializedObject pour conserver la valeur après un play
+            // Mais pas dans la ligne précédente apparement
+            var serializedToRail = new SerializedObject(this);
+            var nextRailsProp = serializedToRail.FindProperty("NextRails");
+
+            int nextRailsSize = nextRailsProp.arraySize++;
+            nextRailsProp.GetArrayElementAtIndex(nextRailsSize).objectReferenceValue = railComp;
+
+            serializedToRail.ApplyModifiedProperties();
+            //
+
+#else
+            // Ajout en dehors de l'éditeur Unity
+            NextRails.Add(railComp);
+#endif
+
+
+
+            _connections.Add(new RailConnection(curveIndex, railBoundary), railComp);
+
+            CheckConnections();
+
+
+            return true;
+        }
+
+
+
+        /// <summary>
+        /// Vérifie si le rail ajouté peut être connecté à un autre rail déjà posé
+        /// </summary>
+        public void CheckConnections()
+        {
+            // Optimisations à faire \\
+
+            
+            Circuit circuit = transform.parent.GetComponent<Circuit>();
+
+            if (!circuit)
+            {
+                Debug.LogError("Le circuit de ce rail n'a pas pu être trouvé");
+
+                return;
+            }
+
+
+            
+
+            List<RailPoint> freeConnectionsPoints = GetFreeConnectionsPoints();
+
+            // 
+            foreach (Rail child in circuit.GetComponentsInChildren<Rail>())
+            {
+                // On ne compare pas avec le même rail
+                if (child == this)
+                {
+                    Debug.Log("exit");
+                    continue;
+                }
+
+
+                foreach (RailPoint connection in child.GetFreeConnectionsPoints())
+                {
+                    Debug.Log(child.GetFreeConnectionsPoints().Count);
+                    foreach (RailPoint currentConnectionPoint in freeConnectionsPoints)
+                    {
+                        if (connection.Position == currentConnectionPoint.Position)
+                        {
+                            Connect(currentConnectionPoint.Connection, connection.Connection, child);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void Connect(RailConnection currentRailConnection, RailConnection otherRailConnection, Rail rail)
+        {
+            Connect(currentRailConnection.CurveBoundary, rail, currentRailConnection.CurveIndex);
+            rail.Connect(otherRailConnection.CurveBoundary, this, otherRailConnection.CurveIndex);
+        }
+
+
+
+        public void Connect(RAIL_BOUNDARY boundary, Rail rail, int curveIndex = -1)
+        {
+            curveIndex = (curveIndex == -1) ? CurveIndex : curveIndex;
+
+            if (boundary == RAIL_BOUNDARY.RAIL_BEGIN)
+            {
+#if UNITY_EDITOR
+                var serializedRail = new SerializedObject(this);
+                var prevRailsProp = serializedRail.FindProperty("PreviousRails");
+
+                int prevRailsSize = prevRailsProp.arraySize++;
+                prevRailsProp.GetArrayElementAtIndex(prevRailsSize).objectReferenceValue = rail;
+
+                serializedRail.ApplyModifiedProperties();
+#else
+                PreviousRails.Add(rail);
+#endif
+            }
+            else
+            {
+#if UNITY_EDITOR
+                var serializedRail = new SerializedObject(this);
+                var nextRailsProp = serializedRail.FindProperty("NextRails");
+
+                int nextRailsSize = nextRailsProp.arraySize++;
+                nextRailsProp.GetArrayElementAtIndex(nextRailsSize).objectReferenceValue = rail;
+
+                serializedRail.ApplyModifiedProperties();
+#else
+                NextRails.Add(rail);
+#endif
+            }
+
+            _connections.Add(new RailConnection(curveIndex, boundary), rail);
+        }
+
+        public Vector3 GetBoundaryPosition(RAIL_BOUNDARY boundary, int curveIndex = -1)
+        {
+            curveIndex = (curveIndex == -1) ? CurveIndex : curveIndex;
+
+            BGCcMath math = Curves[curveIndex].GetComponent<BGCcMath>();
+
+            if (boundary == RAIL_BOUNDARY.RAIL_BEGIN)
+            {
+                return math.CalcPositionByDistanceRatio(0.0f);
+            }
+            else
+            {
+                return math.CalcPositionByDistanceRatio(1.0f);
+            }
+        }
+
+        /// <summary>
+        /// Renvoie la liste des connexions libres du rail
+        /// Changer par un Set ?
+        /// </summary>
+        /// <returns></returns>
+        public List<RailPoint> GetFreeConnectionsPoints()
+        {
+            List<RailPoint> freeConnections = new List<RailPoint>();
+
+            for (int i = 0; i < Curves.Length; i++)
+            {
+                BGCurve curve = Curves[i];
+                RailConnection connection = new RailConnection(i, RAIL_BOUNDARY.RAIL_BEGIN);
+
+                if (!_connections.ContainsKey(connection))
+                {
+                    Vector3 position = GetBoundaryPosition(connection.CurveBoundary, i);
+                    freeConnections.Add(new RailPoint(position, connection));
+                    Debug.Log(position);
+                }
+
+                connection = new RailConnection(i, RAIL_BOUNDARY.RAIL_END);
+                if (!_connections.ContainsKey(connection))
+                {
+                    Vector3 position = GetBoundaryPosition(connection.CurveBoundary, i);
+                    freeConnections.Add(new RailPoint(position, connection));
+                }
+            }
+
+            return freeConnections;
+        }
+
+        #endregion
+    }
+}
